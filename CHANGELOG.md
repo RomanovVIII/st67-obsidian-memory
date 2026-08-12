@@ -27,6 +27,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Reject auditor symlinks, Markdown targets, and index paths that resolve outside their confirmed project or vault boundary.
 - Redact raw link and stale-index target values from diagnostics while preserving existing counters and exit codes.
+- Prevent Python bytecode caches created during test discovery from contaminating repository contract checks in CI.
 
 [Unreleased]: https://github.com/RomanovVIII/st67-obsidian-memory/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/RomanovVIII/st67-obsidian-memory/releases/tag/v0.1.0

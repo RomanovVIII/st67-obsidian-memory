@@ -257,7 +257,7 @@ tests/
 ## Development
 
 ```bash
-python3 -m unittest discover -s tests -v
+python3 -B -m unittest discover -s tests -v
 python3 -m compileall -q skills tests
 ```
 

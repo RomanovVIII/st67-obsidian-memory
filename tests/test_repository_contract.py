@@ -28,6 +28,15 @@ class RepositoryContractTests(unittest.TestCase):
         missing = sorted(name for name in required if not (REPO_ROOT / name).is_file())
         self.assertEqual(missing, [])
 
+    def test_ci_disables_bytecode_before_repository_contracts(self) -> None:
+        workflow = (REPO_ROOT / ".github" / "workflows" / "ci.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn(
+            "python -B -m unittest discover -s tests -v",
+            workflow,
+        )
+
     def test_distributable_skill_contains_only_runtime_files(self) -> None:
         actual = {
             path.relative_to(SKILL_ROOT).as_posix()

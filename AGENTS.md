@@ -18,7 +18,7 @@ This repository is the technical source of truth for ST67 Obsidian Memory.
 ## Required local checks
 
 ```bash
-python3 -m unittest discover -s tests -v
+python3 -B -m unittest discover -s tests -v
 python3 -m compileall -q skills tests
 python3 /path/to/skill-creator/scripts/quick_validate.py skills/obsidian-memory
 ```
