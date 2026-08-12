@@ -2,13 +2,14 @@
 
 ## Supported versions
 
-The project is currently `Unreleased`; there is no supported public release yet. Security fixes will be applied to the current development line until a versioned support policy is published.
+| Version | Supported |
+| --- | --- |
+| 0.1.x | Yes |
+| < 0.1 | No |
 
 ## Reporting a vulnerability
 
-Do not publish sensitive vulnerability details in a public issue. When the future GitHub repository enables private vulnerability reporting, use that private channel and include affected files or versions, reproduction steps, impact, and any suggested mitigation.
-
-This local baseline has no public reporting channel. Publication and its disclosure channel are separate future actions.
+Do not publish sensitive vulnerability details in a public issue. Use this repository's GitHub private vulnerability reporting channel and include affected files or versions, reproduction steps, impact, and any suggested mitigation.
 
 ## Security boundaries
 

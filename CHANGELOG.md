@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-08-12
+
 ### Added
 
 - Public-ready baseline of the `obsidian-memory` Agent Skill.
@@ -19,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Wikilink heading and block-reference validation plus binary Obsidian embed resolution.
 - English and Russian documentation, MIT licensing, contribution and security policies.
 - Regression, CLI, onboarding, packaging, privacy, and metadata contract tests.
-- Future CI matrix for Ubuntu, macOS, and Windows on Python 3.9 and 3.14.
+- CI matrix for Ubuntu, macOS, and Windows on Python 3.9 and 3.14.
 
-The first planned release is `0.1.0`. No version tag has been created.
+[Unreleased]: https://github.com/RomanovVIII/st67-obsidian-memory/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/RomanovVIII/st67-obsidian-memory/releases/tag/v0.1.0
