@@ -58,6 +58,8 @@ Start from the entry point and schema. Distinguish confirmed state from archived
 ## Boundaries
 
 - Resolve and validate Wikilinks only inside the current vault.
+- Reject symlinks, Markdown targets, and index paths whose resolved target leaves the confirmed project, memory root, or vault boundary.
+- Report link findings by safe relative source path, category, and line number; never echo the raw link target.
 - Never create a Wikilink to another vault; use plain text, a path in backticks, or an ordinary external link.
 - Do not assume one shared vault, a fixed path, or a fixed layout.
 - Keep source code, service worktrees, dependencies, builds, caches, generated files, test outputs, diagnostics, and secrets out of the wiki.

@@ -34,7 +34,7 @@ class ProjectVaultAuditTests(unittest.TestCase):
 
             self.assertEqual(
                 result["AMBIGUOUS_WIKI_LINKS"],
-                ["note.md -> logs [a/logs.md, b/logs.md]"],
+                ["note.md -> AMBIGUOUS_WIKILINK_LINE_3"],
             )
             self.assertEqual(result["BROKEN_WIKI_LINKS"], [])
 
@@ -82,8 +82,76 @@ class ProjectVaultAuditTests(unittest.TestCase):
             self.assertEqual(result["MISSING_FROM_INDEX"], [])
             self.assertEqual(
                 result["BROKEN_WIKI_LINKS"],
-                ["temp/draft.md -> missing-page"],
+                ["temp/draft.md -> BROKEN_WIKILINK_LINE_3"],
             )
+
+    def test_broken_wikilink_does_not_expose_its_target(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            vault = Path(temp_dir) / "vault"
+            secret_target = "example-private-link-value-67"
+            self.write(vault, "index.md", "# Index\n\n- [[index]]\n- [[note]]\n")
+            self.write(vault, "note.md", f"# Note\n\nSee [[{secret_target}]].\n")
+
+            result = audit(vault, "index.md", vault)
+
+            rendered = "\n".join(result["BROKEN_WIKI_LINKS"])
+            self.assertEqual(rendered, "note.md -> BROKEN_WIKILINK_LINE_3")
+            self.assertNotIn(secret_target, rendered)
+
+    def test_markdown_path_outside_vault_is_safe_broken_finding(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            base = Path(temp_dir)
+            vault = base / "vault"
+            secret_target = "example-private-outside-value-67.md"
+            self.write(base, secret_target, "private\n")
+            self.write(vault, "index.md", "# Index\n\n- [[index]]\n- [[note]]\n")
+            self.write(
+                vault,
+                "note.md",
+                f"# Note\n\n[Outside](../{secret_target})\n",
+            )
+
+            result = audit(vault, "index.md", vault)
+
+            rendered = "\n".join(result["BROKEN_MARKDOWN_LINKS"])
+            self.assertEqual(rendered, "note.md -> UNSAFE_MARKDOWN_LINK_LINE_3")
+            self.assertNotIn(secret_target, rendered)
+
+    def test_external_file_symlink_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            base = Path(temp_dir)
+            vault = base / "vault"
+            self.write(vault, "index.md", "# Index\n\n- [[index]]\n")
+            outside = base / "private.md"
+            outside.write_text("private\n", encoding="utf-8")
+            linked = vault / "linked.md"
+            try:
+                linked.symlink_to(outside)
+            except (NotImplementedError, OSError) as exc:
+                self.skipTest(f"symlinks are unavailable: {exc}")
+
+            with self.assertRaisesRegex(ValueError, "unsafe path outside vault"):
+                audit(vault, "index.md", vault)
+
+    def test_internal_file_symlink_remains_supported(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            vault = Path(temp_dir) / "vault"
+            self.write(
+                vault,
+                "index.md",
+                "# Index\n\n- [[index]]\n- [[target]]\n- [[linked]]\n",
+            )
+            self.write(vault, "target.md", "# Target\n")
+            linked = vault / "linked.md"
+            try:
+                linked.symlink_to(vault / "target.md")
+            except (NotImplementedError, OSError) as exc:
+                self.skipTest(f"symlinks are unavailable: {exc}")
+
+            result = audit(vault, "index.md", vault)
+
+            self.assertEqual(result["MD_FILES"], 3)
+            self.assertEqual(result["BROKEN_WIKI_LINKS"], [])
 
     def test_markdown_links_count_as_incoming_relationships(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -193,7 +261,7 @@ class ProjectVaultAuditTests(unittest.TestCase):
 
             self.assertEqual(
                 result["BROKEN_WIKI_LINKS"],
-                ["note.md -> target#Отсутствует"],
+                ["note.md -> BROKEN_WIKILINK_LINE_4"],
             )
 
     def test_local_headings_and_block_references_are_validated(self) -> None:
@@ -213,8 +281,8 @@ class ProjectVaultAuditTests(unittest.TestCase):
             self.assertEqual(
                 result["BROKEN_WIKI_LINKS"],
                 [
-                    "note.md -> #Missing section",
-                    "note.md -> note#^missing-block",
+                    "note.md -> BROKEN_WIKILINK_LINE_8",
+                    "note.md -> BROKEN_WIKILINK_LINE_10",
                 ],
             )
 
@@ -247,7 +315,7 @@ class ProjectVaultAuditTests(unittest.TestCase):
             self.assertEqual(result["BROKEN_WIKI_EMBEDS"], [])
             self.assertEqual(
                 result["AMBIGUOUS_WIKI_EMBEDS"],
-                ["note.md -> image.png [a/image.png, b/image.png]"],
+                ["note.md -> AMBIGUOUS_WIKI_EMBED_LINE_3"],
             )
 
     def test_markdown_embed_heading_is_validated(self) -> None:
@@ -261,7 +329,7 @@ class ProjectVaultAuditTests(unittest.TestCase):
 
             self.assertEqual(
                 result["BROKEN_WIKI_EMBEDS"],
-                ["note.md -> target#Missing"],
+                ["note.md -> BROKEN_WIKI_EMBED_LINE_3"],
             )
 
 

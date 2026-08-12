@@ -20,6 +20,7 @@ TBD_RE = re.compile(r"TBD_[A-Za-z0-9_.-]+")
 FENCED_CODE_RE = re.compile(r"(?s)```.*?```")
 INLINE_CODE_RE = re.compile(r"`[^`\r\n]*`")
 SCHEME_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.-]*:")
+WINDOWS_ABSOLUTE_RE = re.compile(r"^[A-Za-z]:[/\\]")
 ATX_HEADING_RE = re.compile(r"^\s{0,3}#{1,6}\s+(.+?)\s*#*\s*$")
 SETEXT_HEADING_RE = re.compile(r"^\s{0,3}(?:=+|-+)\s*$")
 BLOCK_REFERENCE_RE = re.compile(r"(?:^|\s)\^([A-Za-z0-9-]+)\s*$")
@@ -36,6 +37,56 @@ def normalize_unicode(value: str) -> str:
 
 def normalize_rel(path: Path, root: Path) -> str:
     return normalize_unicode(path.relative_to(root).as_posix())
+
+
+def safe_display(value: str) -> str:
+    """Escape control characters before a value reaches a terminal or log."""
+    return "".join(
+        f"\\x{ord(char):02x}" if ord(char) < 32 or ord(char) == 127 else char
+        for char in normalize_unicode(value)
+    )
+
+
+def line_finding(source: str, category: str, text: str, offset: int) -> str:
+    line_number = text.count("\n", 0, offset) + 1
+    return f"{safe_display(source)} -> {category}_LINE_{line_number}"
+
+
+def path_reference_is_unsafe(value: str) -> bool:
+    normalized = normalize_unicode(unquote(value.strip()).replace("\\", "/"))
+    if not normalized:
+        return False
+    if normalized.startswith("/") or WINDOWS_ABSOLUTE_RE.match(normalized):
+        return True
+    return ".." in Path(normalized).parts
+
+
+def wiki_reference_is_unsafe(raw: str) -> bool:
+    reference = raw.split("|", 1)[0].strip()
+    target = reference.split("#", 1)[0].strip()
+    return bool(
+        target
+        and not SCHEME_RE.match(target)
+        and path_reference_is_unsafe(target)
+    )
+
+
+def resolve_inside(candidate: Path, boundary: Path, message: str) -> Path:
+    resolved = candidate.resolve()
+    try:
+        resolved.relative_to(boundary.resolve())
+    except ValueError as exc:
+        raise ValueError(message) from exc
+    return resolved
+
+
+def safe_file_paths(root: Path, pattern: str, boundary: Path) -> list[Path]:
+    files: list[Path] = []
+    for path in root.rglob(pattern):
+        resolve_inside(path, boundary, "unsafe path outside vault")
+        if path.is_file():
+            files.append(path)
+    return files
 
 
 def resolve_wiki_target(raw: str) -> str | None:
@@ -68,8 +119,10 @@ def wiki_target_path(target: str) -> str:
     return target
 
 
-def resolve_unicode_path(candidate: Path) -> Path:
+def resolve_unicode_path(candidate: Path, boundary: Path | None = None) -> Path:
     candidate = candidate.resolve()
+    if boundary is not None:
+        resolve_inside(candidate, boundary, "unsafe path outside vault")
     parts = candidate.parts
     if not parts:
         return candidate
@@ -98,10 +151,13 @@ def resolve_unicode_path(candidate: Path) -> Path:
                 continue
             return candidate
         current = matches[0]
-    return current.resolve()
+    resolved = current.resolve()
+    if boundary is not None:
+        resolve_inside(resolved, boundary, "unsafe path outside vault")
+    return resolved
 
 
-def resolve_markdown_target(raw: str, source: Path) -> Path | None:
+def resolve_markdown_target(raw: str, source: Path, vault_root: Path) -> Path | None:
     target = raw.strip()
     if not target or target.startswith("#") or SCHEME_RE.match(target):
         return None
@@ -110,7 +166,9 @@ def resolve_markdown_target(raw: str, source: Path) -> Path | None:
     )
     if not path_only:
         return None
-    return resolve_unicode_path(source.parent / path_only)
+    if path_reference_is_unsafe(path_only):
+        raise ValueError("unsafe path outside vault")
+    return resolve_unicode_path(source.parent / path_only, vault_root)
 
 
 def wiki_candidates(
@@ -165,7 +223,7 @@ def markdown_anchors(path: Path) -> tuple[set[str], set[str]]:
 def wiki_fragment_exists(candidate: str, fragment: str | None, vault_root: Path) -> bool:
     if not fragment or Path(candidate).suffix.lower() != ".md":
         return True
-    target_path = resolve_unicode_path(vault_root / candidate)
+    target_path = resolve_unicode_path(vault_root / candidate, vault_root)
     headings, blocks = markdown_anchors(target_path)
     if fragment.startswith("^"):
         return normalized_anchor(fragment[1:]) in blocks
@@ -174,7 +232,7 @@ def wiki_fragment_exists(candidate: str, fragment: str | None, vault_root: Path)
 
 def local_target(candidate: str, root: Path, vault_root: Path) -> str | None:
     try:
-        resolved = resolve_unicode_path(vault_root / candidate)
+        resolved = resolve_unicode_path(vault_root / candidate, vault_root)
         return normalize_rel(resolved, root)
     except ValueError:
         return None
@@ -185,40 +243,54 @@ def collect_index_targets(
     root: Path,
     vault_root: Path,
     vault_files: set[str],
-) -> set[str]:
+) -> tuple[set[str], dict[str, int]]:
     if not index_path.exists():
-        return set()
+        return set(), {}
     text = strip_code(index_path.read_text(encoding="utf-8", errors="replace"))
     targets: set[str] = set()
+    target_lines: dict[str, int] = {}
     source_file = normalize_rel(index_path, vault_root)
     for match in WIKI_EMBED_RE.finditer(text):
+        if wiki_reference_is_unsafe(match.group(1)):
+            continue
         candidates = wiki_candidates(match.group(1), vault_files, source_file)
         if len(candidates) == 1:
             target = local_target(candidates[0], root, vault_root)
             if target:
                 targets.add(target)
+                target_lines.setdefault(target, text.count("\n", 0, match.start()) + 1)
     for match in WIKI_LINK_RE.finditer(text):
+        if wiki_reference_is_unsafe(match.group(1)):
+            continue
         candidates = wiki_candidates(match.group(1), vault_files, source_file)
         if len(candidates) == 1:
             target = local_target(candidates[0], root, vault_root)
             if target:
                 targets.add(target)
+                target_lines.setdefault(target, text.count("\n", 0, match.start()) + 1)
     for regex in (MD_ATTACHMENT_RE, MD_LINK_RE):
         for match in regex.finditer(text):
-            resolved = resolve_markdown_target(match.group(1), index_path)
+            try:
+                resolved = resolve_markdown_target(
+                    match.group(1), index_path, vault_root
+                )
+            except ValueError:
+                continue
             if resolved and resolved.suffix.lower() == ".md":
                 try:
-                    targets.add(normalize_rel(resolved, index_path.parent))
+                    target = normalize_rel(resolved, index_path.parent)
                 except ValueError:
                     continue
-    return targets
+                targets.add(target)
+                target_lines.setdefault(target, text.count("\n", 0, match.start()) + 1)
+    return targets, target_lines
 
 
 def emit_section(name: str, values: list[str] | set[str]) -> int:
     ordered = sorted(values)
     print(f"{name}={len(ordered)}")
     for value in ordered:
-        print(value)
+        print(safe_display(value))
     return len(ordered)
 
 
@@ -235,7 +307,7 @@ def audit(
     except ValueError as exc:
         raise ValueError("memory root must be inside the vault root") from exc
 
-    files = sorted(p for p in root.rglob("*.md") if p.is_file())
+    files = sorted(safe_file_paths(root, "*.md", vault_root))
     rel_files = [normalize_rel(path, root) for path in files]
     file_set = set(rel_files)
     index_exclude = [
@@ -249,13 +321,11 @@ def audit(
     }
     vault_markdown_files = {
         normalize_rel(path, vault_root)
-        for path in vault_root.rglob("*.md")
-        if path.is_file()
+        for path in safe_file_paths(vault_root, "*.md", vault_root)
     }
     vault_all_files = {
         normalize_rel(path, vault_root)
-        for path in vault_root.rglob("*")
-        if path.is_file()
+        for path in safe_file_paths(vault_root, "*", vault_root)
     }
     incoming = {rel: set() for rel in rel_files}
 
@@ -274,6 +344,11 @@ def audit(
 
         for match in WIKI_EMBED_RE.finditer(text):
             raw = match.group(1)
+            if wiki_reference_is_unsafe(raw):
+                wiki_embed_broken.append(
+                    line_finding(rel_source, "UNSAFE_WIKI_EMBED", text, match.start())
+                )
+                continue
             parsed = parse_wiki_reference(raw)
             if parsed is None:
                 continue
@@ -282,15 +357,23 @@ def audit(
             )
             candidates = wiki_candidates(raw, candidate_files, vault_source)
             if not candidates:
-                wiki_embed_broken.append(f"{rel_source} -> {raw}")
+                wiki_embed_broken.append(
+                    line_finding(rel_source, "BROKEN_WIKI_EMBED", text, match.start())
+                )
             elif len(candidates) > 1:
                 wiki_embed_ambiguous.append(
-                    f"{rel_source} -> {raw} [{', '.join(candidates)}]"
+                    line_finding(
+                        rel_source, "AMBIGUOUS_WIKI_EMBED", text, match.start()
+                    )
                 )
             else:
                 _target, fragment = parsed
                 if not wiki_fragment_exists(candidates[0], fragment, vault_root):
-                    wiki_embed_broken.append(f"{rel_source} -> {raw}")
+                    wiki_embed_broken.append(
+                        line_finding(
+                            rel_source, "BROKEN_WIKI_EMBED", text, match.start()
+                        )
+                    )
                     continue
                 target = local_target(candidates[0], root, vault_root)
                 if target in incoming:
@@ -298,6 +381,11 @@ def audit(
 
         for match in WIKI_LINK_RE.finditer(text):
             raw = match.group(1)
+            if wiki_reference_is_unsafe(raw):
+                wiki_broken.append(
+                    line_finding(rel_source, "UNSAFE_WIKILINK", text, match.start())
+                )
+                continue
             parsed = parse_wiki_reference(raw)
             if parsed is None:
                 continue
@@ -306,13 +394,21 @@ def audit(
             )
             candidates = wiki_candidates(raw, candidate_files, vault_source)
             if not candidates:
-                wiki_broken.append(f"{rel_source} -> {raw}")
+                wiki_broken.append(
+                    line_finding(rel_source, "BROKEN_WIKILINK", text, match.start())
+                )
             elif len(candidates) > 1:
-                wiki_ambiguous.append(f"{rel_source} -> {raw} [{', '.join(candidates)}]")
+                wiki_ambiguous.append(
+                    line_finding(rel_source, "AMBIGUOUS_WIKILINK", text, match.start())
+                )
             else:
                 _target, fragment = parsed
                 if not wiki_fragment_exists(candidates[0], fragment, vault_root):
-                    wiki_broken.append(f"{rel_source} -> {raw}")
+                    wiki_broken.append(
+                        line_finding(
+                            rel_source, "BROKEN_WIKILINK", text, match.start()
+                        )
+                    )
                     continue
                 target = local_target(candidates[0], root, vault_root)
                 if target in incoming:
@@ -320,9 +416,21 @@ def audit(
 
         for match in MD_ATTACHMENT_RE.finditer(text):
             raw = match.group(1)
-            target_path = resolve_markdown_target(raw, path)
+            try:
+                target_path = resolve_markdown_target(raw, path, vault_root)
+            except ValueError:
+                md_attachment_broken.append(
+                    line_finding(
+                        rel_source, "UNSAFE_MARKDOWN_ATTACHMENT", text, match.start()
+                    )
+                )
+                continue
             if target_path and not target_path.exists():
-                md_attachment_broken.append(f"{rel_source} -> {raw}")
+                md_attachment_broken.append(
+                    line_finding(
+                        rel_source, "BROKEN_MARKDOWN_ATTACHMENT", text, match.start()
+                    )
+                )
             elif target_path and target_path.suffix.lower() == ".md":
                 try:
                     target = normalize_rel(target_path, root)
@@ -333,9 +441,21 @@ def audit(
 
         for match in MD_LINK_RE.finditer(text):
             raw = match.group(1)
-            target_path = resolve_markdown_target(raw, path)
+            try:
+                target_path = resolve_markdown_target(raw, path, vault_root)
+            except ValueError:
+                md_broken.append(
+                    line_finding(
+                        rel_source, "UNSAFE_MARKDOWN_LINK", text, match.start()
+                    )
+                )
+                continue
             if target_path and not target_path.exists():
-                md_broken.append(f"{rel_source} -> {raw}")
+                md_broken.append(
+                    line_finding(
+                        rel_source, "BROKEN_MARKDOWN_LINK", text, match.start()
+                    )
+                )
             elif target_path and target_path.suffix.lower() == ".md":
                 try:
                     target = normalize_rel(target_path, root)
@@ -345,24 +465,39 @@ def audit(
                     incoming[target].add(rel_source)
 
         for match in TBD_RE.finditer(text):
-            tbd_refs.append(f"{rel_source} -> {match.group(0)}")
+            tbd_refs.append(
+                line_finding(rel_source, "TBD_REFERENCE", text, match.start())
+            )
 
     normalized_index_name = normalize_unicode(index_name.replace("\\", "/"))
-    index_path = resolve_unicode_path(root / normalized_index_name)
-    index_targets = collect_index_targets(
+    if path_reference_is_unsafe(normalized_index_name):
+        raise ValueError("index must be inside memory root")
+    try:
+        index_path = resolve_unicode_path(root / normalized_index_name, root)
+    except ValueError as exc:
+        raise ValueError("index must be inside memory root") from exc
+    index_rel = normalize_rel(index_path, root)
+    index_targets, index_target_lines = collect_index_targets(
         index_path,
         root,
         vault_root,
         vault_markdown_files,
     )
-    missing_from_index = sorted(managed_file_set - index_targets)
-    stale_index = sorted(index_targets - file_set)
-    index_rel = normalize_rel(index_path, root)
+    missing_from_index = sorted(
+        safe_display(value) for value in managed_file_set - index_targets
+    )
+    stale_index = sorted(
+        f"{safe_display(index_rel)} -> STALE_INDEX_ENTRY_LINE_"
+        f"{index_target_lines[target]}"
+        for target in index_targets - file_set
+    )
     zero_incoming = sorted(
-        rel for rel, refs in incoming.items() if not refs and rel != index_rel
+        safe_display(rel)
+        for rel, refs in incoming.items()
+        if not refs and rel != index_rel
     )
     weak_incoming = sorted(
-        rel
+        safe_display(rel)
         for rel, refs in incoming.items()
         if rel not in {index_rel, "log.md"} and not (refs - {index_rel, "log.md"})
     )
@@ -407,11 +542,11 @@ def main(argv: list[str]) -> int:
 
     root = Path(args.memory_root)
     if not root.exists() or not root.is_dir():
-        print(f"ERROR: memory root is not a directory: {root}", file=sys.stderr)
+        print("ERROR: memory root is not a directory", file=sys.stderr)
         return 2
     vault_root = Path(args.vault_root) if args.vault_root else root
     if not vault_root.exists() or not vault_root.is_dir():
-        print(f"ERROR: vault root is not a directory: {vault_root}", file=sys.stderr)
+        print("ERROR: vault root is not a directory", file=sys.stderr)
         return 2
 
     try:

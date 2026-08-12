@@ -86,6 +86,31 @@ def normalize_rel(path: Path, root: Path, *, directory: bool = False) -> str:
     return f"{relative}/" if directory else relative
 
 
+def safe_display(value: str) -> str:
+    """Escape control characters before a value reaches a terminal or log."""
+    return "".join(
+        f"\\x{ord(char):02x}" if ord(char) < 32 or ord(char) == 127 else char
+        for char in normalize_unicode(value)
+    )
+
+
+def resolve_inside(candidate: Path, boundary: Path, message: str) -> Path:
+    resolved = candidate.resolve()
+    try:
+        resolved.relative_to(boundary.resolve())
+    except ValueError as exc:
+        raise ValueError(message) from exc
+    return resolved
+
+
+def iter_project_paths(root: Path) -> list[Path]:
+    paths: list[Path] = []
+    for path in root.rglob("*"):
+        resolve_inside(path, root, "unsafe path outside project")
+        paths.append(path)
+    return paths
+
+
 def sort_key(value: str) -> str:
     return normalize_unicode(value).casefold()
 
@@ -103,7 +128,7 @@ def iter_project_files(root: Path) -> list[Path]:
     return sorted(
         (
             path
-            for path in root.rglob("*")
+            for path in iter_project_paths(root)
             if path.is_file() and not path_is_ignored(path, root)
         ),
         key=lambda path: sort_key(normalize_rel(path, root)),
@@ -122,7 +147,7 @@ def find_sensitive_candidates(root: Path) -> list[str]:
             or lowered.startswith("secrets")
             or path.suffix.casefold() in {".key", ".pem", ".p12", ".pfx"}
         ):
-            findings.add(f"{relative} -> SENSITIVE_FILENAME")
+            findings.add(f"{safe_display(relative)} -> SENSITIVE_FILENAME")
         if path.suffix.casefold() not in SENSITIVE_TEXT_SUFFIXES:
             continue
         try:
@@ -132,22 +157,23 @@ def find_sensitive_candidates(root: Path) -> list[str]:
         except OSError:
             continue
         if PRIVATE_KEY_RE.search(text):
-            findings.add(f"{relative} -> PRIVATE_KEY_MATERIAL")
+            findings.add(f"{safe_display(relative)} -> PRIVATE_KEY_MATERIAL")
         if SECRET_ASSIGNMENT_RE.search(text):
-            findings.add(f"{relative} -> SECRET_ASSIGNMENT")
+            findings.add(f"{safe_display(relative)} -> SECRET_ASSIGNMENT")
         if EMAIL_RE.search(text):
-            findings.add(f"{relative} -> EMAIL_ADDRESS")
+            findings.add(f"{safe_display(relative)} -> EMAIL_ADDRESS")
     return sorted(findings, key=sort_key)
 
 
 def inventory(root: Path) -> dict[str, int | list[str]]:
+    project_paths = iter_project_paths(root)
     markdown_files = [
         path for path in iter_project_files(root) if path.suffix.casefold() == ".md"
     ]
     wiki_candidates = sorted(
         {
             normalize_rel(path, root, directory=True)
-            for path in root.rglob("*")
+            for path in project_paths
             if path.is_dir()
             and path.name.startswith("wiki_")
             and not path_is_ignored(path, root)
@@ -157,8 +183,10 @@ def inventory(root: Path) -> dict[str, int | list[str]]:
     obsidian_vaults = sorted(
         {
             normalize_rel(path.parent, root, directory=True)
-            for path in root.rglob(".obsidian")
-            if path.is_dir() and not path_is_ignored(path.parent, root, include_obsidian=True)
+            for path in project_paths
+            if path.name == ".obsidian"
+            and path.is_dir()
+            and not path_is_ignored(path.parent, root, include_obsidian=True)
         },
         key=sort_key,
     )
@@ -197,7 +225,7 @@ def excluded_from_index(path: Path, wiki_root: Path) -> bool:
 def permanent_objects(wiki_root: Path) -> tuple[set[str], list[Path]]:
     directories: set[str] = set()
     markdown_files: list[Path] = []
-    for path in wiki_root.rglob("*"):
+    for path in iter_project_paths(wiki_root):
         if excluded_from_index(path, wiki_root):
             continue
         if path.is_dir():
@@ -224,16 +252,17 @@ def frontmatter_violations(
     relative: str,
     expected: dict[str, str | None],
 ) -> list[str]:
+    display_relative = safe_display(relative)
     try:
         lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
     except OSError:
-        return [f"{relative} -> unreadable"]
+        return [f"{display_relative} -> unreadable"]
     if not lines or lines[0] != "---":
-        return [f"{relative} -> missing frontmatter"]
+        return [f"{display_relative} -> missing frontmatter"]
     try:
         end = lines.index("---", 1)
     except ValueError:
-        return [f"{relative} -> unterminated frontmatter"]
+        return [f"{display_relative} -> unterminated frontmatter"]
 
     values: dict[str, str] = {}
     duplicates: list[str] = []
@@ -253,37 +282,41 @@ def frontmatter_violations(
         if current_key and stripped.startswith("-"):
             list_values.setdefault(current_key, []).append(stripped[1:].strip())
 
-    findings = [f"{relative} -> duplicate key: {key}" for key in duplicates]
+    findings = [
+        f"{display_relative} -> duplicate key: {key}" for key in duplicates
+    ]
     for key in ("title", "created", "updated", "status", "tags"):
         if key not in values:
-            findings.append(f"{relative} -> missing key: {key}")
+            findings.append(f"{display_relative} -> missing key: {key}")
             continue
         if key == "tags":
             if not yaml_value_is_present(values[key]) and not any(
                 yaml_value_is_present(item) for item in list_values.get(key, [])
             ):
-                findings.append(f"{relative} -> empty key: tags")
+                findings.append(f"{display_relative} -> empty key: tags")
         elif not yaml_value_is_present(values[key]):
-            findings.append(f"{relative} -> empty key: {key}")
+            findings.append(f"{display_relative} -> empty key: {key}")
     for key in ("created", "updated"):
         if key in values:
             value = clean_scalar(values[key])
             if not yaml_value_is_present(value):
                 continue
             if not DATE_RE.fullmatch(value):
-                findings.append(f"{relative} -> invalid date: {key}")
+                findings.append(f"{display_relative} -> invalid date: {key}")
             else:
                 try:
                     date.fromisoformat(value)
                 except ValueError:
-                    findings.append(f"{relative} -> invalid date: {key}")
+                    findings.append(f"{display_relative} -> invalid date: {key}")
     for key, wanted in expected.items():
         if key not in values:
-            findings.append(f"{relative} -> missing key: {key}")
+            findings.append(f"{display_relative} -> missing key: {key}")
         elif not yaml_value_is_present(values[key]):
-            findings.append(f"{relative} -> empty key: {key}")
+            findings.append(f"{display_relative} -> empty key: {key}")
         elif wanted is not None and clean_scalar(values[key]) != wanted:
-            findings.append(f"{relative} -> invalid {key}: expected {wanted}")
+            findings.append(
+                f"{display_relative} -> invalid {key}: expected {safe_display(wanted)}"
+            )
     return findings
 
 
@@ -334,20 +367,23 @@ def classify_numbered_file(
     }
 
 
-def parse_index(index_path: Path, relative: str) -> tuple[dict[str, str], list[str], list[str]]:
+def parse_index(index_path: Path, relative: str) -> tuple[dict[str, int], list[str], list[str]]:
+    display_relative = safe_display(relative)
     try:
         lines = index_path.read_text(encoding="utf-8", errors="replace").splitlines()
     except OSError:
-        return {}, [f"{relative} -> unreadable"], []
+        return {}, [f"{display_relative} -> unreadable"], []
     section_count = lines.count("## Состав базы")
     if section_count > 1:
-        duplicate_finding = f"{relative} -> duplicate section: ## Состав базы"
+        duplicate_finding = (
+            f"{display_relative} -> duplicate section: ## Состав базы"
+        )
     else:
         duplicate_finding = None
     try:
         start = lines.index("## Состав базы") + 1
     except ValueError:
-        return {}, [f"{relative} -> missing section: ## Состав базы"], []
+        return {}, [f"{display_relative} -> missing section: ## Состав базы"], []
     section: list[tuple[int, str]] = []
     for line_number, line in enumerate(lines[start:], start=start + 1):
         if line.startswith("## "):
@@ -355,7 +391,7 @@ def parse_index(index_path: Path, relative: str) -> tuple[dict[str, str], list[s
         if line.startswith("- "):
             section.append((line_number, line))
 
-    entries: dict[str, str] = {}
+    entries: dict[str, int] = {}
     order: list[str] = []
     format_findings: list[str] = [duplicate_finding] if duplicate_finding else []
     for line_number, line in section:
@@ -367,17 +403,21 @@ def parse_index(index_path: Path, relative: str) -> tuple[dict[str, str], list[s
             raw_path, title, purpose, contents = folder_match.groups()
         else:
             format_findings.append(
-                f"{relative} -> UNRECOGNIZED_ENTRY_LINE_{line_number}"
+                f"{display_relative} -> UNRECOGNIZED_ENTRY_LINE_{line_number}"
             )
             continue
         target = normalize_unicode(raw_path.replace("\\", "/").lstrip("/"))
         if not all(value.strip().strip(".") for value in (title, purpose, contents)):
-            format_findings.append(target)
+            format_findings.append(
+                f"{display_relative} -> INVALID_ENTRY_LINE_{line_number}"
+            )
             continue
         if target in entries:
-            format_findings.append(f"{target} -> duplicate entry")
+            format_findings.append(
+                f"{display_relative} -> DUPLICATE_ENTRY_LINE_{line_number}"
+            )
             continue
-        entries[target] = line
+        entries[target] = line_number
         order.append(target)
     return entries, sorted(set(format_findings), key=sort_key), order
 
@@ -406,11 +446,16 @@ def validate_structure(
         (wiki_root / f"todo_{code}.md", "file"),
     )
     for path, expected_type in required_paths:
+        boundary = project_root if path == project_root / "AGENTS.md" else wiki_root
+        if path.is_symlink():
+            resolve_inside(path, boundary, "unsafe path outside project")
         type_matches = path.is_file() if expected_type == "file" else path.is_dir()
         if not type_matches:
             root = project_root if path == project_root / "AGENTS.md" else wiki_root
             findings["MISSING_REQUIRED_OBJECTS"].append(
-                normalize_rel(path, root, directory=expected_type == "directory")
+                safe_display(
+                    normalize_rel(path, root, directory=expected_type == "directory")
+                )
             )
 
     directories, markdown_files = permanent_objects(wiki_root)
@@ -424,13 +469,13 @@ def validate_structure(
     for path in markdown_files:
         relative = normalize_rel(path, wiki_root)
         if path.name.casefold().startswith("index") and relative != f"index_{code}.md":
-            findings["EXTRA_INDEX_FILES"].append(relative)
+            findings["EXTRA_INDEX_FILES"].append(safe_display(relative))
         if relative in expected_singletons:
             expected_metadata[relative] = {}
             continue
         classified = classify_numbered_file(path, relative, code)
         if classified is None:
-            findings["NAMING_VIOLATIONS"].append(relative)
+            findings["NAMING_VIOLATIONS"].append(safe_display(relative))
             expected_metadata[relative] = {}
             continue
         marker, number, metadata = classified
@@ -472,16 +517,29 @@ def validate_structure(
         entries, format_findings, order = parse_index(index_path, f"index_{code}.md")
         findings["INDEX_FORMAT_VIOLATIONS"].extend(format_findings)
         findings["MISSING_FROM_INDEX"].extend(
-            sorted(expected_index_objects - set(entries), key=sort_key)
+            sorted(
+                (safe_display(value) for value in expected_index_objects - set(entries)),
+                key=sort_key,
+            )
         )
         findings["STALE_INDEX_ENTRIES"].extend(
-            sorted(set(entries) - expected_index_objects, key=sort_key)
+            sorted(
+                (
+                    f"{safe_display(f'index_{code}.md')} -> "
+                    f"STALE_INDEX_ENTRY_LINE_{entries[target]}"
+                    for target in set(entries) - expected_index_objects
+                ),
+                key=sort_key,
+            )
         )
         if order != sorted(order, key=sort_key):
             findings["INDEX_ORDER_VIOLATIONS"].append("## Состав базы")
     else:
         findings["MISSING_FROM_INDEX"].extend(
-            sorted(expected_index_objects, key=sort_key)
+            sorted(
+                (safe_display(value) for value in expected_index_objects),
+                key=sort_key,
+            )
         )
 
     return {
@@ -503,7 +561,7 @@ def audit(
     if (wiki_root is None) != (code is None):
         raise ValueError("--wiki-root and --code must be provided together")
     if code is not None and not CODE_RE.fullmatch(code):
-        raise ValueError(f"invalid project code: {code}")
+        raise ValueError("invalid project code")
 
     result = inventory(project_root)
     result.update({name: [] for name in STRICT_COUNTERS})
@@ -527,7 +585,7 @@ def audit(
 def emit_section(name: str, values: list[str]) -> int:
     print(f"{name}={len(values)}")
     for value in values:
-        print(value)
+        print(safe_display(value))
     return len(values)
 
 

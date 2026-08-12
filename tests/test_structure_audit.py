@@ -353,7 +353,18 @@ class StructureAuditTests(unittest.TestCase):
             )
 
             self.assertIn("entities/", result["MISSING_FROM_INDEX"])
-            self.assertIn("ghost.md", result["STALE_INDEX_ENTRIES"])
+            self.assertTrue(
+                any(
+                    finding.startswith(
+                        "index_DEMO.md -> STALE_INDEX_ENTRY_LINE_"
+                    )
+                    for finding in result["STALE_INDEX_ENTRIES"]
+                )
+            )
+            self.assertNotIn(
+                "ghost.md",
+                "\n".join(result["STALE_INDEX_ENTRIES"]),
+            )
             self.assertTrue(
                 any(
                     finding.startswith(
@@ -394,6 +405,31 @@ class StructureAuditTests(unittest.TestCase):
                 rendered,
             )
             self.assertNotIn(secret_value, rendered)
+
+    def test_stale_index_entry_is_reported_without_its_target(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            fixture = CleanProject(Path(temp_dir) / "project")
+            fixture.build()
+            secret_target = "example-private-stale-index-value-67.md"
+            fixture.entries[secret_target] = (
+                f"- [[{secret_target}|Hidden]] — Назначение: hidden. "
+                "Состав: hidden."
+            )
+            fixture.render_index()
+
+            result = audit(
+                fixture.root,
+                wiki_root=fixture.wiki,
+                code="DEMO",
+                current_month="2026-08",
+            )
+
+            rendered = "\n".join(result["STALE_INDEX_ENTRIES"])
+            self.assertRegex(
+                rendered,
+                r"^index_DEMO\.md -> STALE_INDEX_ENTRY_LINE_\d+$",
+            )
+            self.assertNotIn(secret_target, rendered)
 
     def test_reports_duplicate_database_composition_section(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -492,6 +528,38 @@ class StructureAuditTests(unittest.TestCase):
             }
 
             self.assertEqual(after, before)
+
+    def test_external_file_symlink_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            base = Path(temp_dir)
+            project = base / "project"
+            project.mkdir()
+            outside = base / "private.md"
+            outside.write_text("private\n", encoding="utf-8")
+            linked = project / "linked.md"
+            try:
+                linked.symlink_to(outside)
+            except (NotImplementedError, OSError) as exc:
+                self.skipTest(f"symlinks are unavailable: {exc}")
+
+            with self.assertRaisesRegex(ValueError, "unsafe path outside project"):
+                audit(project)
+
+    def test_internal_file_symlink_remains_supported(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project = Path(temp_dir) / "project"
+            project.mkdir()
+            source = project / "source.md"
+            source.write_text("# Source\n", encoding="utf-8")
+            linked = project / "linked.md"
+            try:
+                linked.symlink_to(source)
+            except (NotImplementedError, OSError) as exc:
+                self.skipTest(f"symlinks are unavailable: {exc}")
+
+            result = audit(project)
+
+            self.assertEqual(result["PROJECT_MD_FILES"], 2)
 
     def test_existing_agents_file_remains_byte_for_byte_unchanged(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

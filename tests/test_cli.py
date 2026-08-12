@@ -58,7 +58,7 @@ class LinkAuditCliTests(unittest.TestCase):
             self.assertIn("TBD_REFERENCES=0\n", result.stdout)
             self.assertEqual(result.stderr, "")
 
-    def test_strict_problem_returns_one_and_reports_target(self) -> None:
+    def test_strict_problem_returns_one_and_reports_safe_location(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             vault = Path(temp_dir) / "vault"
             self.write(vault, "index.md", "# Index\n\n- [[index]]\n- [[note]]\n")
@@ -68,7 +68,8 @@ class LinkAuditCliTests(unittest.TestCase):
 
             self.assertEqual(result.returncode, 1)
             self.assertIn("BROKEN_WIKI_LINKS=1\n", result.stdout)
-            self.assertIn("note.md -> missing-page\n", result.stdout)
+            self.assertIn("note.md -> BROKEN_WIKILINK_LINE_3\n", result.stdout)
+            self.assertNotIn("missing-page", result.stdout)
             self.assertEqual(result.stderr, "")
 
     def test_missing_memory_root_returns_two(self) -> None:
@@ -79,7 +80,11 @@ class LinkAuditCliTests(unittest.TestCase):
 
             self.assertEqual(result.returncode, 2)
             self.assertEqual(result.stdout, "")
-            self.assertIn("ERROR: memory root is not a directory:", result.stderr)
+            self.assertEqual(
+                result.stderr,
+                "ERROR: memory root is not a directory\n",
+            )
+            self.assertNotIn(str(missing), result.stderr)
 
     def test_memory_root_outside_vault_returns_two(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -98,6 +103,28 @@ class LinkAuditCliTests(unittest.TestCase):
             self.assertEqual(result.returncode, 2)
             self.assertEqual(result.stdout, "")
             self.assertIn("ERROR: memory root must be inside the vault root", result.stderr)
+
+    def test_index_outside_memory_root_returns_two_without_echoing_path(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            base = Path(temp_dir)
+            vault = base / "vault"
+            private_index = base / "example-private-index-value-67.md"
+            self.write(vault, "index.md", "# Index\n\n- [[index]]\n")
+            private_index.write_text("private\n", encoding="utf-8")
+
+            result = self.run_cli(
+                str(vault),
+                "--index",
+                f"../{private_index.name}",
+            )
+
+            self.assertEqual(result.returncode, 2)
+            self.assertEqual(result.stdout, "")
+            self.assertEqual(
+                result.stderr,
+                "ERROR: index must be inside memory root\n",
+            )
+            self.assertNotIn(private_index.name, result.stderr)
 
     def test_help_lists_stable_options(self) -> None:
         result = self.run_cli("--help")

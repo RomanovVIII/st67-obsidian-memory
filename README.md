@@ -132,7 +132,7 @@ The auditor checks:
 - Unicode NFC/NFD;
 - sensitive-data candidates.
 
-The audit does not modify the project. Suspected secret values and unrecognized index-line contents are never printed.
+The audit does not modify the project. Suspected secret values and unrecognized index-line contents are never printed. A discovered symlink whose resolved target leaves the project is rejected as invalid input.
 
 Exit codes:
 
@@ -161,7 +161,9 @@ Supported forms include:
 - Unicode NFC/NFD;
 - a nested managed wiki inside a larger vault.
 
-The auditor detects broken and ambiguous links, missing targets, targets outside the vault, incomplete index coverage, and documents without sufficient incoming links.
+The auditor detects broken and ambiguous links, missing targets, targets outside the vault, incomplete index coverage, and documents without sufficient incoming links. Symlinks and index paths that resolve outside the confirmed boundary are rejected. Unsafe Markdown targets are counted as broken without accessing the external path.
+
+Diagnostic details contain only a safe relative source path, a finding category, and a line number. Raw link and stale-index target values are not printed.
 
 It is read-only, does not use the network, and does not start external processes.
 

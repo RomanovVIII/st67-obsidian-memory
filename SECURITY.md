@@ -13,6 +13,6 @@ Do not publish sensitive vulnerability details in a public issue. Use this repos
 
 ## Security boundaries
 
-The runtime auditors are designed to read local project, Markdown, and attachment paths without modifying the inspected project or vault, accessing the network, or launching external processes. They have no third-party runtime dependencies. The structure inventory reports only relative paths and finding categories; it does not print suspected secret values or the contents of unrecognized index lines.
+The runtime auditors are designed to read local project, Markdown, and attachment paths without modifying the inspected project or vault, accessing the network, or launching external processes. They have no third-party runtime dependencies. Resolved symlinks, Markdown targets, and index paths must remain inside their confirmed boundary. Unsafe paths are rejected before content is read. Diagnostics report safe relative source paths, categories, and line numbers without raw link targets, suspected secret values, or unrecognized index-line contents.
 
 Onboarding does not install Obsidian, alter application settings, move or delete ambiguous material, replace an existing `AGENTS.md`, or create recovery infrastructure without separate approval. The root template is used only for a missing file or as a checklist of separately approved compatible additions. Treat any change to these boundaries as security-sensitive and add focused regression coverage.
