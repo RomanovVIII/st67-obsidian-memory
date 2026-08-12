@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- Updated GitHub Actions checkout and Python setup steps to their Node.js 24-compatible v7 releases.
+
 ## [0.1.0] - 2026-08-12
 
 ### Added

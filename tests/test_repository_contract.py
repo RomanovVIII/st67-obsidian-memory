@@ -37,6 +37,13 @@ class RepositoryContractTests(unittest.TestCase):
             workflow,
         )
 
+    def test_ci_uses_node24_compatible_official_actions(self) -> None:
+        workflow = (REPO_ROOT / ".github" / "workflows" / "ci.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("uses: actions/checkout@v7", workflow)
+        self.assertIn("uses: actions/setup-python@v7", workflow)
+
     def test_distributable_skill_contains_only_runtime_files(self) -> None:
         actual = {
             path.relative_to(SKILL_ROOT).as_posix()
