@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Onboarding reference with adaptive ready-to-use templates for root `AGENTS.md`, frontmatter, the single index, lifecycle owners, base rules, and the preliminary setup proposal.
 - Read-only structural inventory and validation CLI with stable counters and redacted sensitive-data candidates.
 - Structural validation of required file and directory types, plus content-free reporting of unrecognized index lines.
+- Verified exact path inventories in setup proposals so displayed object totals cannot diverge from the proposed scope.
 - Cross-platform, standard-library-only link auditor.
 - Wikilink heading and block-reference validation plus binary Obsidian embed resolution.
 - English and Russian documentation, MIT licensing, contribution and security policies.
