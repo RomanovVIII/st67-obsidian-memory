@@ -1,14 +1,20 @@
 **English** | [Русский](README.ru.md)
 
+[![GitHub stars](https://img.shields.io/github/stars/RomanovVIII/st67-obsidian-memory?style=social)](https://github.com/RomanovVIII/st67-obsidian-memory/stargazers)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/Python-3.9%2B-blue.svg)](https://www.python.org/)
+
 ![ST67 Obsidian Memory](assets/st67-obsidian-memory-hero.png)
 
 # ST67 Obsidian Memory
 
-**Structure, links, and long-term memory for project knowledge bases.**
+**Structure, links, and long-term memory for AI-managed project knowledge bases.**
 
-ST67 Obsidian Memory is an Agent Skill for OpenAI Codex that helps create, organize, maintain, and audit project knowledge bases in Obsidian and Markdown.
+ST67 Obsidian Memory is an Agent Skill for OpenAI Codex that helps create, organize, maintain, query, and audit project knowledge bases in Obsidian and Markdown — without forcing every project into the same structure.
 
-The skill works for both beginners with a chaotic collection of notes and projects with an established structure. It does not impose a universal schema: existing `AGENTS.md` files, indexes, and local rules always take priority.
+**In short:** give an AI agent a messy or established Markdown knowledge base and let it work with the structure safely, follow local rules, detect problems, and preserve the project's source of truth.
+
+⭐ **If this project is useful to you, star the repository.** It helps other people building agent-managed knowledge bases discover it.
 
 ## Why it exists
 
@@ -21,6 +27,8 @@ Without a stable structure, a project knowledge base gradually becomes a collect
 - an agent cannot tell which document is the source of truth.
 
 ST67 Obsidian Memory helps turn that material into a managed knowledge base while preserving source data and requiring approval before changes.
+
+The skill works for both beginners with a chaotic collection of notes and projects with an established structure. It does not impose a universal schema: existing `AGENTS.md` files, indexes, and local rules always take priority.
 
 ## Four operating modes
 
@@ -265,9 +273,13 @@ CI checks the project on Ubuntu, macOS, and Windows with Python 3.9 and 3.14.
 
 ## Contributing
 
-Bug reports and Pull Requests are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) before making changes.
+Bug reports, Pull Requests, ideas, and feedback are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) before making changes.
 
 Do not publish vulnerability details in ordinary Issues. Use private vulnerability reporting as described in [SECURITY.md](SECURITY.md).
+
+## Support the project
+
+If ST67 Obsidian Memory helps you keep an AI-managed knowledge base structured, linked, and maintainable, **give the repository a ⭐**.
 
 ## Attribution
 
