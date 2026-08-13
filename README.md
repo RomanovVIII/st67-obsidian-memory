@@ -4,17 +4,27 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.9%2B-blue.svg)](https://www.python.org/)
 
+# 🧠 ST67 Obsidian Memory
+
+## Turn a pile of Markdown files into a knowledge base your AI can actually understand.
+
+**Structure. Links. Decisions. Memory. Audits. Without forcing your project into someone else's folder scheme.**
+
 ![ST67 Obsidian Memory](assets/st67-obsidian-memory-hero.png)
 
-# ST67 Obsidian Memory
+ST67 Obsidian Memory is an Agent Skill for OpenAI Codex that helps create, organize, maintain, query, and audit project knowledge bases in Obsidian and Markdown.
 
-**Structure, links, and long-term memory for AI-managed project knowledge bases.**
+### ⚡ Built for real projects
 
-ST67 Obsidian Memory is an Agent Skill for OpenAI Codex that helps create, organize, maintain, query, and audit project knowledge bases in Obsidian and Markdown — without forcing every project into the same structure.
+- messy existing vaults;
+- long-running AI projects;
+- multiple agents and contributors;
+- Markdown + Obsidian workflows;
+- projects where the **source of truth** actually matters.
 
-**In short:** give an AI agent a messy or established Markdown knowledge base and let it work with the structure safely, follow local rules, detect problems, and preserve the project's source of truth.
+The skill follows your project's existing rules first. It can inspect before writing, detect structural problems, preserve local conventions, and keep an AI agent from turning a knowledge base into a second pile of duplicated notes.
 
-⭐ **If this project is useful to you, star the repository.** It helps other people building agent-managed knowledge bases discover it.
+⭐ **If this helps your AI understand the project instead of just reading files, star the repository.** It helps other people building agent-managed knowledge bases discover it.
 
 ## Why it exists
 
