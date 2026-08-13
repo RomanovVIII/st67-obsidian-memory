@@ -6,29 +6,55 @@
 
 # 🧠 ST67 Obsidian Memory
 
-## Turn a pile of Markdown files into a knowledge base your AI can actually understand.
+## Give your AI agent a memory that survives the chat.
 
-**Structure. Links. Decisions. Memory. Audits. Without forcing your project into someone else's folder scheme.**
+**Most AI sessions end when you close the conversation. The next session starts without the project knowledge you built together. ST67 Obsidian Memory turns that temporary context into a persistent, structured project memory the agent can return to later.**
 
 ![ST67 Obsidian Memory](assets/st67-obsidian-memory-hero.png)
 
-ST67 Obsidian Memory is an Agent Skill for OpenAI Codex that helps create, organize, maintain, query, and audit project knowledge bases in Obsidian and Markdown.
+Think of it as a **second memory for your AI agent**. Instead of relying only on the current chat, the agent can build and maintain a project knowledge base containing confirmed facts, decisions, tasks, incidents, rules, history, and links between them.
 
-### ⚡ Built for real projects
+You do not need to be an Obsidian expert. The memory is stored in ordinary Markdown files that remain readable and usable by people. Obsidian adds a convenient interface and links, but it is optional.
 
-- messy existing vaults;
+ST67 Obsidian Memory is an Agent Skill for OpenAI Codex that helps an agent create, maintain, query, and audit this long-term project memory safely.
+
+### ⚡ What changes when your agent has memory?
+
+**Without persistent memory:**
+
+- useful context stays trapped in old chats;
+- the next session may need the same explanations again;
+- decisions, facts, and project history become scattered;
+- different agents can develop different versions of the truth.
+
+**With ST67 Obsidian Memory:**
+
+- important project knowledge survives between sessions;
+- the agent knows where confirmed information belongs;
+- decisions, tasks, incidents, rules, and history remain connected;
+- future sessions can start from the project's accumulated knowledge instead of from zero;
+- the knowledge base stays human-readable and under your control.
+
+### 🧩 Built for real projects
+
+It works with:
+
+- a new project that has no knowledge base yet;
+- an existing collection of Markdown notes;
+- Obsidian vaults;
 - long-running AI projects;
 - multiple agents and contributors;
-- Markdown + Obsidian workflows;
-- projects where the **source of truth** actually matters.
+- projects with their own structure, naming rules, and source-of-truth documents.
 
-The skill follows your project's existing rules first. It can inspect before writing, detect structural problems, preserve local conventions, and keep an AI agent from turning a knowledge base into a second pile of duplicated notes.
+The skill does **not** force every project into one universal folder structure. Existing `AGENTS.md` files, indexes, local rules, and established knowledge owners take priority.
 
-⭐ **If this helps your AI understand the project instead of just reading files, star the repository.** It helps other people building agent-managed knowledge bases discover it.
+⭐ **If you believe AI agents should remember the project after the chat closes, star the repository.** It helps other people discover the project.
 
 ## Why it exists
 
-Without a stable structure, a project knowledge base gradually becomes a collection of disconnected files:
+AI agents are powerful inside a conversation, but project work lasts much longer than one conversation. A useful project memory needs more than a pile of transcripts: it needs a clear place for current facts, decisions, tasks, rules, incidents, history, and relationships between documents.
+
+Without that structure, a knowledge base gradually becomes another collection of disconnected files:
 
 - the same facts live in several places;
 - decisions and tasks get lost among notes;
@@ -36,9 +62,7 @@ Without a stable structure, a project knowledge base gradually becomes a collect
 - new contributors do not know where to begin;
 - an agent cannot tell which document is the source of truth.
 
-ST67 Obsidian Memory helps turn that material into a managed knowledge base while preserving source data and requiring approval before changes.
-
-The skill works for both beginners with a chaotic collection of notes and projects with an established structure. It does not impose a universal schema: existing `AGENTS.md` files, indexes, and local rules always take priority.
+ST67 Obsidian Memory manages that persistent memory while preserving source data and requiring approval before significant changes.
 
 ## Four operating modes
 
@@ -289,7 +313,7 @@ Do not publish vulnerability details in ordinary Issues. Use private vulnerabili
 
 ## Support the project
 
-If ST67 Obsidian Memory helps you keep an AI-managed knowledge base structured, linked, and maintainable, **give the repository a ⭐**.
+If ST67 Obsidian Memory helps give your AI agent useful long-term project memory, **give the repository a ⭐**.
 
 ## Attribution
 
