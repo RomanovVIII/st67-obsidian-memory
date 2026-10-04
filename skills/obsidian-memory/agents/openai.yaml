@@ -1,4 +1,4 @@
 interface:
   display_name: "Obsidian Memory"
-  short_description: "Set up, maintain, query, and audit knowledge bases"
-  default_prompt: "Use $obsidian-memory to onboard and organize, maintain, query, or audit this project's Obsidian or Markdown knowledge base while preserving its local schema."
+  short_description: "Organize memory, find prior work, check links"
+  default_prompt: "Use $obsidian-memory to create, migrate, maintain, audit, or search project memory, or reconcile it on an explicit request to finish a thread."
