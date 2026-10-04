@@ -1,330 +1,78 @@
 **English** | [Русский](README.ru.md)
 
-[![GitHub stars](https://img.shields.io/github/stars/RomanovVIII/st67-obsidian-memory?style=social)](https://github.com/RomanovVIII/st67-obsidian-memory/stargazers)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Python](https://img.shields.io/badge/Python-3.9%2B-blue.svg)](https://www.python.org/)
+# ST67 Obsidian Memory — v0.2.0
 
-# 🧠 ST67 Obsidian Memory
-
-## Give your AI agent a memory that survives the chat.
-
-**Most AI sessions end when you close the conversation. The next session starts without the project knowledge you built together. ST67 Obsidian Memory turns that temporary context into a persistent, structured project memory the agent can return to later.**
+Give your AI agent a memory that survives the chat. This Codex Agent Skill maintains confirmed facts, decisions, tasks, problems and useful links in ordinary Markdown. Obsidian is optional.
 
 ![ST67 Obsidian Memory](assets/st67-obsidian-memory-hero.png)
 
-Think of it as a **second memory for your AI agent**. Instead of relying only on the current chat, the agent can build and maintain a project knowledge base containing confirmed facts, decisions, tasks, incidents, rules, history, and links between them.
+## Operating modes
 
-You do not need to be an Obsidian expert. The memory is stored in ordinary Markdown files that remain readable and usable by people. Obsidian adds a convenient interface and links, but it is optional.
+The short SKILL.md routes to separate creation, migration, maintenance, naming, audit and explicit thread-completion procedures. Only needed references are loaded; unchanged context is reused. At first substantive use or a topic change, search existing TODOs, plans, active/completed problems, decisions and completed work by object/aliases. A query does not modify the base or authorize matched tasks.
 
-ST67 Obsidian Memory is an Agent Skill for OpenAI Codex that helps an agent create, maintain, query, and audit this long-term project memory safely.
+An implementation instruction authorizes necessary updates within its scope without repeated confirmation. Design-only requests stay proposals. Structural expansion and irreversible deletion of valuable materials need agreement. Existing ownership, paths, names and lifecycle are preserved until an approved migration. History is not evidence of current infrastructure state; automated checks do not replace semantic or live-state verification.
 
-### ⚡ What changes when your agent has memory?
+## New-base standard: naming-v1
 
-**Without persistent memory:**
+Minimum: `IDX_ATLAS.md`, `CFG_ATLAS.json`, and `LOG_ATLAS-0001_2026-10.md` from the first journaled event. No empty monthly logs. TODO appears at the first open question; cards and folders appear as needed. Shared maintenance/Link Workflow remain in the skill, with local parameters and special procedures at the base.
 
-- useful context stays trapped in old chats;
-- the next session may need the same explanations again;
-- decisions, facts, and project history become scattered;
-- different agents can develop different versions of the truth.
+The fixed type vocabulary is `IDX CFG LOG TODO HOST DEV APP SRV NET STO PLN CPLD TRB CTRB DEC RSR RPT RUL ATT RAW TMP`. Services use SRV. Each base has a permanent unique namespace, distinct from its logical owner and optional parent. Reparenting never changes filenames.
 
-**With ST67 Obsidian Memory:**
+Numbered files use `TYPE_BASE-NNNN_topic`, with dates for plans/problems/decisions/reports/logs. Each type has its own non-reused sequence. A designated allocator reserves IDs and retains high-water marks in CFG, even after failure/deletion; other masters edit existing records or prepare content. This release has no central allocator service or distributed lock. Closing PLN/TRB allocates CPLD/CTRB with a new ID and retained source_id. Completed work is not automatically a decision. Full examples: [naming and numbering](skills/obsidian-memory/references/naming-and-numbering.md), [templates](skills/obsidian-memory/references/file-templates.md).
 
-- important project knowledge survives between sessions;
-- the agent knows where confirmed information belongs;
-- decisions, tasks, incidents, rules, and history remain connected;
-- future sessions can start from the project's accumulated knowledge instead of from zero;
-- the knowledge base stays human-readable and under your control.
+## Install
 
-### 🧩 Built for real projects
-
-It works with:
-
-- a new project that has no knowledge base yet;
-- an existing collection of Markdown notes;
-- Obsidian vaults;
-- long-running AI projects;
-- multiple agents and contributors;
-- projects with their own structure, naming rules, and source-of-truth documents.
-
-The skill does **not** force every project into one universal folder structure. Existing `AGENTS.md` files, indexes, local rules, and established knowledge owners take priority.
-
-⭐ **If you believe AI agents should remember the project after the chat closes, star the repository.** It helps other people discover the project.
-
-## Why it exists
-
-AI agents are powerful inside a conversation, but project work lasts much longer than one conversation. A useful project memory needs more than a pile of transcripts: it needs a clear place for current facts, decisions, tasks, rules, incidents, history, and relationships between documents.
-
-Without that structure, a knowledge base gradually becomes another collection of disconnected files:
-
-- the same facts live in several places;
-- decisions and tasks get lost among notes;
-- links stop working;
-- new contributors do not know where to begin;
-- an agent cannot tell which document is the source of truth.
-
-ST67 Obsidian Memory manages that persistent memory while preserving source data and requiring approval before significant changes.
-
-## Four operating modes
-
-### Onboarding
-
-For a new or chaotic knowledge base.
-
-The skill:
-
-1. inspects the project in read-only mode;
-2. finds Markdown files, existing rules, indexes, and possible vaults;
-3. identifies duplicate topics and sensitive-data candidates;
-4. asks only questions whose answers cannot be determined automatically;
-5. proposes a short project code and an explained structure;
-6. shows an exact setup proposal;
-7. stops and waits for explicit approval before writing.
-
-### Maintenance
-
-For maintaining, migrating, and reorganizing an existing knowledge base.
-
-The skill follows the accepted local schema, updates the canonical owners of knowledge, and does not create duplicate documents or parallel wikis.
-
-### Query
-
-For searching and answering without changing files.
-
-The skill starts from the project's entry point and distinguishes confirmed current state from history, assumptions, and unverified material.
-
-### Audit
-
-For a standard or full read-only knowledge-base audit.
-
-The audit covers structure, metadata, index coverage, Wikilinks, headings, block references, attachments, and vault boundaries.
-
-## What a beginner gets
-
-After inspection, the skill can propose this baseline:
+Ask `$skill-installer` to install from:
 
 ```text
-<project>/
-├── AGENTS.md
-└── wiki_<project_slug>/
-    ├── decisions_<CODE>.md
-    ├── entities/
-    ├── inbox/
-    ├── incidents/
-    ├── index_<CODE>.md
-    ├── logs/
-    │   └── 0001_LOG-<CODE>_YYYY-MM.md
-    ├── rules/
-    │   ├── 0001_RUL-<CODE>-database-maintenance.md
-    │   └── 0002_RUL-<CODE>-link-workflow.md
-    └── todo_<CODE>.md
+https://github.com/RomanovVIII/st67-obsidian-memory/tree/v0.2.0/skills/obsidian-memory
 ```
 
-Every object has an explained purpose:
-
-- the single index covers all permanent Markdown files and folders;
-- TODO contains only current unresolved items;
-- decisions accumulate in one document with new entries at the top;
-- logs are split by month with new events at the top;
-- every significant incident gets a separate card;
-- entity cards are updated in place;
-- `inbox/` holds unverified material and is never cleared automatically;
-- two required rules define knowledge-base maintenance and link handling.
-
-Additional folders are created only when a confirmed need exists.
-
-## Onboarding safety
-
-Without separate approval, onboarding does not:
-
-- install or configure Obsidian;
-- replace an existing `AGENTS.md`;
-- move, merge, or delete ambiguous material;
-- delete duplicates;
-- create a Git repository or backup;
-- change source documents;
-- write secrets into the wiki.
-
-An existing `AGENTS.md` is preserved. The skill may only propose exact compatible additions and show them before writing.
-
-## Structure auditor
-
-Inventory a project:
-
-```bash
-python3 skills/obsidian-memory/scripts/structure_audit.py /path/to/project
-```
-
-Fully validate an approved structure:
-
-```bash
-python3 skills/obsidian-memory/scripts/structure_audit.py /path/to/project \
-  --wiki-root /path/to/project/wiki_example \
-  --code EXAMPLE \
-  --strict-exit
-```
-
-The auditor checks:
-
-- required files and folders, including their object type;
-- naming and numbering;
-- YAML frontmatter;
-- index uniqueness;
-- index completeness and ordering;
-- the current month's log;
-- Unicode NFC/NFD;
-- sensitive-data candidates.
-
-The audit does not modify the project. Suspected secret values and unrecognized index-line contents are never printed. A discovered symlink whose resolved target leaves the project is rejected as invalid input.
-
-Exit codes:
-
-- `0` — successful check;
-- `1` — strict mode found violations;
-- `2` — invalid input.
+Alternatively download `obsidian-memory-v0.2.0.zip` from the release, verify SHA256SUMS, and copy its `obsidian-memory` folder into your environment's user skill directory. Runtime version is in VERSION. Restart Codex if necessary. Existing bases and other agents' installations are not migrated automatically.
 
 ## Link auditor
 
 ```bash
-python3 skills/obsidian-memory/scripts/link_audit.py /path/to/managed-wiki \
-  --vault-root /path/to/current-vault \
-  --strict-exit
+python3 skills/obsidian-memory/scripts/link_audit.py /path/to/base --strict-exit
+python3 skills/obsidian-memory/scripts/link_audit.py /path/to/base --changed cards/service.md --strict-exit
+python3 skills/obsidian-memory/scripts/link_audit.py /path/to/base --changed cards/new.md --removed cards/old.md --json --strict-exit
 ```
 
-Supported forms include:
+Repeated `--changed` accepts existing changed documents/attachments, `--removed` absent former paths. Local mode checks affected incoming/outgoing links, registration and applicable lifecycle/naming constraints. Unrelated errors do not affect its result; the report states its scope. Inventory and other documents' links may be scanned for resolution.
 
-- `[[page]]`;
-- `[[folder/page]]`;
-- aliases;
-- heading links;
-- block references;
-- `![[note]]`;
-- binary embeds;
-- Markdown links and attachments;
-- Unicode NFC/NFD;
-- a nested managed wiki inside a larger vault.
+Schema v1/v2 remain supported; schema v3 adds file_namespace, naming_profile, allocation_owner, last_issued and optional parent_base_id. Explicit `--config` wins; otherwise legacy `obsidian-memory.config.json`, then a unique root `CFG_*.json`; multiple candidates return 2. Without configuration, index.md remains the fallback. `--index` overrides the selected index.
 
-The auditor detects broken and ambiguous links, missing targets, targets outside the vault, incomplete index coverage, and documents without sufficient incoming links. Symlinks and index paths that resolve outside the confirmed boundary are rejected. Unsafe Markdown targets are counted as broken without accessing the external path.
+Public flags `--vault-root`, repeated `--index-exclude`, `--strict-exit` and earlier counters remain. A larger vault boundary must be confirmed as the same base; independent bases never resolve wiki links between them. Index-only exclusions do not disable link checks. `--compare-root` only compares managed filenames, locally limited to touched names. Unicode NFC and case-insensitive collisions include documents and attachments. Legal parent paths inside the boundary are accepted; escaping links and unsafe input/symlinks are rejected. Heading/block targets are checked outside code examples, using original source line numbers.
 
-Diagnostic details contain only a safe relative source path, a finding category, and a line number. Raw link and stale-index target values are not printed.
+**No file writes or network calls by default.** `--json` prints a safe report. Only explicit `--json-out` writes a report inside the inspected root; only explicit `--check-urls` checks configured URL classes (changed documents in local mode). No external processes or third-party runtime dependencies. Text, JSON and stderr diagnostics omit raw link values and URL credentials.
 
-It is read-only, does not use the network, and does not start external processes.
+Exit codes: 0 successful execution, 1 strict findings with --strict-exit, 2 invalid arguments/configuration/boundaries. Read-only audit can detect problems without repairing them.
 
-## Install in Codex
+## Structure auditor
 
-### With Skill Installer
-
-Open Codex and ask `$skill-installer` to install the skill from this repository:
-
-```text
-Install obsidian-memory from:
-https://github.com/RomanovVIII/st67-obsidian-memory/tree/v0.1.0/skills/obsidian-memory
+```bash
+python3 skills/obsidian-memory/scripts/structure_audit.py /path/to/project
+python3 skills/obsidian-memory/scripts/structure_audit.py /path/to/base --profile naming-v1 --strict-exit
+python3 skills/obsidian-memory/scripts/structure_audit.py /path/to/project --wiki-root wiki_example --code EXAMPLE --strict-exit
 ```
 
-Restart Codex if the new skill does not appear immediately.
+The old call preserves the legacy onboarding profile and counters. The explicit naming-v1 profile checks the new minimum, identities, counters and uniqueness; gaps and months without events are valid. Do not apply legacy layout requirements to new bases. Sensitive-data inventory reports categories, not values. Both auditors are read-only except the link auditor's explicitly requested JSON report.
 
-### Manually
+## Explicit completion and cleanup
 
-Copy:
+An explicit command to finish a thread reconciles confirmed results, related tasks and links, retaining unfinished work. It checks only confirmed task-related raw/inbox and tmp/temp roots. Raw is normally retained; deletion requires verified transferred knowledge, an exact permanent original copy with matching checksum, no active references and no continuation/recovery need. Delete only the agent's exhausted current-work temporary materials. Preserve useful, foreign, old or unclear objects and list them for the user's decision. No OS temporary-directory sweep, indiscriminate deletion, automatic task closure or chat archiving.
 
-```text
-skills/obsidian-memory
-```
+## Requirements and development
 
-to your user skills directory:
-
-```text
-$HOME/.agents/skills/obsidian-memory
-```
-
-Codex also supports a symlink to the skill directory.
-
-After installation, invoke the skill explicitly:
-
-```text
-$obsidian-memory
-```
-
-You can also describe the task in ordinary language and let Codex select the skill from its description.
-
-## Quick start
-
-For a chaotic knowledge base:
-
-```text
-$obsidian-memory inspect this project and propose a safe knowledge-base organization. Do not change anything before my approval.
-```
-
-For maintenance:
-
-```text
-$obsidian-memory read the local rules and update the knowledge base with the results of the current work.
-```
-
-For a query:
-
-```text
-$obsidian-memory find the confirmed decisions on this topic. Do not modify files.
-```
-
-For a full audit:
-
-```text
-$obsidian-memory run a full structure and link audit of this wiki.
-```
-
-## Requirements
-
-- Python 3.9 or newer;
-- OpenAI Codex for the primary use case;
-- macOS, Linux, or Windows;
-- no third-party runtime dependencies;
-- Obsidian is optional.
-
-The Markdown rules, templates, and Python auditors can be adapted to other agent environments that support Agent Skills or a compatible instruction format. Compatibility must be verified separately in each environment.
-
-## Repository layout
-
-```text
-skills/obsidian-memory/
-├── SKILL.md
-├── agents/openai.yaml
-├── references/onboarding.md
-└── scripts/
-    ├── link_audit.py
-    └── structure_audit.py
-tests/
-└── contract and runtime tests
-```
-
-## Development
+Python 3.9+, standard library only; Windows, macOS and Linux. Codex is the primary environment; other compatible agent environments need separate verification.
 
 ```bash
 python3 -B -m unittest discover -s tests -v
 python3 -m compileall -q skills tests
 ```
 
-CI checks the project on Ubuntu, macOS, and Windows with Python 3.9 and 3.14.
+CI runs Ubuntu/macOS/Windows on Python 3.9 and 3.14. Tests live outside the installable runtime. Run the official skill validator available in your development environment. See [CONTRIBUTING.md](CONTRIBUTING.md), [CHANGELOG.md](CHANGELOG.md) and [SECURITY.md](SECURITY.md).
 
-## Contributing
+Developer: Studio 67. Author and copyright holder: Master V. Technical co-developer: MacMaster; v0.2.0 integration: Master X. [MIT License](LICENSE).
 
-Bug reports, Pull Requests, ideas, and feedback are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) before making changes.
-
-Do not publish vulnerability details in ordinary Issues. Use private vulnerability reporting as described in [SECURITY.md](SECURITY.md).
-
-## Support the project
-
-If ST67 Obsidian Memory helps give your AI agent useful long-term project memory, **give the repository a ⭐**.
-
-## Attribution
-
-- Developer: Studio 67
-- Author and copyright holder: Master V
-- Technical co-developer: MacMaster
-
-The project is available under the [MIT License](LICENSE).
-
-## Independent project
-
-Obsidian is a trademark of Dynalist Inc.
-
-ST67 Obsidian Memory is an independent Studio 67 project. It is not affiliated with, endorsed by, or sponsored by Obsidian, Dynalist Inc., or OpenAI.
+Obsidian is a trademark of Dynalist Inc. This independent Studio 67 project is not affiliated with or endorsed by Dynalist Inc. or OpenAI.

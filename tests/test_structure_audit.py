@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import hashlib
+from datetime import date
 import shutil
 import subprocess
 import sys
@@ -656,6 +657,13 @@ class StructureAuditCliTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             fixture = CleanProject(Path(temp_dir) / "project")
             fixture.build()
+            month = date.today().strftime("%Y-%m")
+            old = f"logs/0001_LOG-{fixture.code}_2026-08.md"
+            new = f"logs/0001_LOG-{fixture.code}_{month}.md"
+            if new != old:
+                (fixture.wiki / old).rename(fixture.wiki / new)
+                fixture.entries[new] = fixture.entries.pop(old).replace(old, new)
+                fixture.render_index()
 
             result = self.run_cli(
                 str(fixture.root),

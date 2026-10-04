@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import re
 import sys
+sys.dont_write_bytecode = True
 import unicodedata
 from datetime import date
 from pathlib import Path
@@ -554,10 +555,38 @@ def audit(
     wiki_root: Path | None = None,
     code: str | None = None,
     current_month: str | None = None,
+    profile: str = "legacy",
+    config_path: str | None = None,
 ) -> dict[str, int | list[str]]:
     project_root = project_root.resolve()
     if not project_root.is_dir():
         raise ValueError("project root is not a directory")
+    if profile == "naming-v1":
+        from link_audit import audit as audit_links, load_config, collect_files, strip_code
+        from naming import audit_names
+        selected = (wiki_root or project_root).resolve()
+        resolve_inside(selected, project_root, "wiki root must be inside the project root")
+        config, selected_config = load_config(selected, config_path)
+        if config.get("naming_profile") != "naming-v1":
+            raise ValueError("naming-v1 requires schema v3 configuration")
+        if code is not None and code != config["file_namespace"]:
+            raise ValueError("project code differs from configured namespace")
+        result = inventory(selected)
+        result.update({name: [] for name in STRICT_COUNTERS})
+        for name in ("IDX_" + config["file_namespace"] + ".md", "CFG_" + config["file_namespace"] + ".json"):
+            if not (selected / name).is_file():
+                result["MISSING_REQUIRED_OBJECTS"].append(name)
+        files = collect_files(selected, config.get("_excluded_paths", []))
+        findings = audit_names(selected, files, config, text_reader=strip_code)
+        result["NAMING_VIOLATIONS"] = [i["source"] + " -> " + i["kind"] for i in findings]
+        links = audit_links(selected, config["_index_path"], config)
+        for name in ("MISSING_FROM_INDEX", "STALE_INDEX_ENTRIES"):
+            result[name] = links[name]
+        result["INDEX_FORMAT_VIOLATIONS"] = [i["kind"] for i in links["INDEX_POLICY_FINDINGS"]]
+        result["NAMING_VIOLATIONS"].extend(i["kind"] for i in links["DUPLICATE_MANAGED_FILENAMES"])
+        return result
+    if profile != "legacy":
+        raise ValueError("unknown structure profile")
     if (wiki_root is None) != (code is None):
         raise ValueError("--wiki-root and --code must be provided together")
     if code is not None and not CODE_RE.fullmatch(code):
@@ -590,12 +619,19 @@ def emit_section(name: str, values: list[str]) -> int:
 
 
 def main(argv: list[str]) -> int:
-    parser = argparse.ArgumentParser(
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(errors="backslashreplace")
+    class SafeParser(argparse.ArgumentParser):
+        def error(self, message):
+            self.exit(2, "ERROR: invalid arguments\n")
+    parser = SafeParser(
         description="Audit an Obsidian Memory onboarding project without changing it."
     )
     parser.add_argument("project_root", help="Project root containing AGENTS.md.")
     parser.add_argument("--wiki-root", help="Onboarding wiki root inside the project.")
     parser.add_argument("--code", help="Confirmed project code, for example HOME.")
+    parser.add_argument("--profile", choices=("legacy", "naming-v1"), default="legacy", help="Default preserves legacy onboarding validation.")
+    parser.add_argument("--config", help="Explicit configuration inside the selected base (naming-v1 only).")
     parser.add_argument(
         "--strict-exit",
         action="store_true",
@@ -603,7 +639,7 @@ def main(argv: list[str]) -> int:
     )
     args = parser.parse_args(argv)
 
-    if bool(args.wiki_root) != bool(args.code):
+    if args.profile == "legacy" and (bool(args.wiki_root) != bool(args.code) or args.config):
         print(
             "ERROR: --wiki-root and --code must be provided together",
             file=sys.stderr,
@@ -615,8 +651,11 @@ def main(argv: list[str]) -> int:
         candidate = Path(args.wiki_root)
         wiki_root = candidate if candidate.is_absolute() else project_root / candidate
     try:
-        result = audit(project_root, wiki_root=wiki_root, code=args.code)
-    except ValueError as exc:
+        result = audit(project_root, wiki_root=wiki_root, code=args.code, profile=args.profile, config_path=args.config)
+    except (ValueError, OSError) as exc:
+        if args.profile == "naming-v1":
+            print("ERROR: invalid naming-v1 configuration or boundary", file=sys.stderr)
+            return 2
         print(f"ERROR: {exc}", file=sys.stderr)
         return 2
 

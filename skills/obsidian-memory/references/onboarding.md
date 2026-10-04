@@ -1,3 +1,7 @@
+# Legacy v0.1 onboarding compatibility reference
+
+Only for preserving or explicitly inspecting the legacy structure profile. New bases follow creation.md and naming-v1. The legacy approval wording applies to design-only proposals; direct user authorization takes precedence. Do not read this file during ordinary maintenance.
+
 # Beginner Onboarding
 
 Use this reference only when a project has no coherent local knowledge-base schema or the user explicitly asks to organize an unstructured base. An existing `AGENTS.md`, index, and local rules remain authoritative until the user approves a migration.

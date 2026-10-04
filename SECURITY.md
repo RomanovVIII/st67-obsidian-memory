@@ -4,15 +4,20 @@
 
 | Version | Supported |
 | --- | --- |
-| 0.1.x | Yes |
+| 0.2.x | Yes |
+| 0.1.x | Compatibility baseline; upgrade recommended |
 | < 0.1 | No |
 
-## Reporting a vulnerability
+## Reporting
 
-Do not publish sensitive vulnerability details in a public issue. Use this repository's GitHub private vulnerability reporting channel and include affected files or versions, reproduction steps, impact, and any suggested mitigation.
+Use GitHub private vulnerability reporting; do not publish sensitive details in ordinary issues. Include version, reproduction, impact and suggested mitigation without credentials.
 
-## Security boundaries
+## Runtime boundaries
 
-The runtime auditors are designed to read local project, Markdown, and attachment paths without modifying the inspected project or vault, accessing the network, or launching external processes. They have no third-party runtime dependencies. Resolved symlinks, Markdown targets, and index paths must remain inside their confirmed boundary. Unsafe paths are rejected before content is read. Diagnostics report safe relative source paths, categories, and line numbers without raw link targets, suspected secret values, or unrecognized index-line contents.
+Both auditors read local documents without writing files or contacting the network by default. Only an explicitly requested link-auditor --json-out writes a JSON report within memory_root. Only explicit --check-urls enables HTTP(S) reachability checks under configured URL policies; TLS certificates are verified. No external processes or third-party runtime dependencies.
 
-Onboarding does not install Obsidian, alter application settings, move or delete ambiguous material, replace an existing `AGENTS.md`, or create recovery infrastructure without separate approval. The root template is used only for a missing file or as a checklist of separately approved compatible additions. Treat any change to these boundaries as security-sensitive and add focused regression coverage.
+Default link boundary is the selected base. --vault-root may widen it only to an explicitly confirmed same-base vault; it is never permission to resolve neighboring knowledge bases. Comparison roots contribute filenames, never link targets. Resolved symlinks and input/index/config paths must remain inside their boundary. Unsafe links are diagnosed without reading external content. Sensitive inventory and text/JSON/stderr diagnostics do not echo raw link values, URL credentials, suspected secret values or unknown index-line content; source paths and original line numbers remain useful.
+
+Audits validate mechanics, not factual truth, acceptance or infrastructure health. Names/counters are not an allocation service: one appointed owner allocates each base's IDs, and asynchronous sync does not provide a distributed lock. Unknown/inaccessible bases limit uniqueness guarantees.
+
+Task instructions authorize their necessary knowledge updates. Scope expansion, structural redesign and irreversible deletion of valuable originals require agreement. Completion cleanup is limited to confirmed task roots; preserve useful/unfinished/recovery/foreign/unclear material. Raw deletion additionally requires a matching-checksum permanent original copy and no active references. No automatic archive or wholesale cleanup. Never store secrets in bases or distribution packages.

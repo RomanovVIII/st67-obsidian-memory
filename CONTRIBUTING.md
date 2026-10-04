@@ -8,8 +8,8 @@ Thank you for helping improve ST67 Obsidian Memory.
 - Keep the change focused and avoid unrelated refactoring or new features.
 - Do not include personal paths, private data, credentials, tokens, email addresses, generated files, environments, or caches.
 - Preserve Python 3.9+ compatibility and standard-library-only runtime code.
-- Preserve read-only project and vault access, offline operation, the stable link-auditor CLI, and the documented structure-auditor CLI unless a breaking change is explicitly approved for a future release.
-- Keep the four modes in `SKILL.md`, `agents/openai.yaml`, and `references/onboarding.md` aligned when behavior changes. Existing local schemas must remain authoritative.
+- Preserve read-only/offline defaults and explicit --json-out/--check-urls opt-ins, the stable link-auditor CLI, and the documented structure-auditor CLI unless a breaking change is explicitly approved for a future release.
+- Keep the conditional mode routes in `SKILL.md`, metadata and corresponding references aligned when behavior changes. Existing local schemas must remain authoritative.
 - Keep adaptive templates usable as complete starting points while preserving technical filenames, YAML keys, codes, types, and commands.
 
 ## Test the change
@@ -17,7 +17,7 @@ Thank you for helping improve ST67 Obsidian Memory.
 Add a regression test before changing behavior, then run:
 
 ```bash
-python3 -m unittest discover -s tests -v
+python3 -B -m unittest discover -s tests -v
 python3 -m compileall -q skills tests
 ```
 

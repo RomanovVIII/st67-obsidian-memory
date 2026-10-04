@@ -58,6 +58,20 @@ class RepositoryContractTests(unittest.TestCase):
                 "references/onboarding.md",
                 "scripts/link_audit.py",
                 "scripts/structure_audit.py",
+                "scripts/naming.py",
+                "VERSION",
+                "references/agent-integration.md",
+                "references/audit-configuration.md",
+                "references/creation.md",
+                "references/migration.md",
+                "references/naming-and-numbering.md",
+                "references/file-templates.md",
+                "references/interview-questions.md",
+                "references/link-workflow.md",
+                "references/maintenance.md",
+                "references/relationship-model.md",
+                "references/structure-model.md",
+                "references/thread-completion.md",
             },
         )
 
@@ -81,7 +95,7 @@ class RepositoryContractTests(unittest.TestCase):
         email = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
         findings = []
         for path in REPO_ROOT.rglob("*"):
-            if path.is_file() and ".git" not in path.parts:
+            if path.is_file() and ".git" not in path.parts and ".work" not in path.parts:
                 text = path.read_text(encoding="utf-8", errors="replace")
                 if email.search(text):
                     findings.append(path.relative_to(REPO_ROOT).as_posix())
