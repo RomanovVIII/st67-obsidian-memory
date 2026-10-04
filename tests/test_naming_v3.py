@@ -79,6 +79,16 @@ class NamingV3Tests(unittest.TestCase):
         value, _ = link_audit.load_config(self.root, 'CFG_ATLAS.json')
         self.assertEqual(value['schema_version'], 3)
 
+    def test_config_boundary_uses_canonical_root(self):
+        (self.root / 'nested').mkdir()
+        root_alias = self.root / 'nested' / '..'
+        for explicit in (None, 'CFG_ATLAS.json'):
+            value, path = link_audit.load_config(root_alias, explicit)
+            self.assertEqual(value['schema_version'], 3)
+            self.assertEqual(path, (self.root / 'CFG_ATLAS.json').resolve())
+        with self.assertRaises(ValueError):
+            link_audit.load_config(root_alias, str(self.root.parent / 'outside.json'))
+
     def card(self, name='SRV_ATLAS-0007_service.md', identity='SRV_ATLAS-0007'):
         self.write(name, f'---\nid: {identity}\n---\n# Service\n')
         self.write('IDX_ATLAS.md', f'# Atlas\n- [[IDX_ATLAS]]\n- [[{name}]]\n')

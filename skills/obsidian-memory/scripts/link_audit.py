@@ -456,6 +456,7 @@ def validate_config(config: dict[str, Any]) -> dict[str, Any]:
 
 
 def load_config(root: Path, explicit_path: str | None) -> tuple[dict[str, Any], Path | None]:
+    root = root.resolve()
     config_path = Path(explicit_path) if explicit_path else root / DEFAULT_CONFIG_NAME
     if not explicit_path and not config_path.exists():
         candidates = sorted(root.glob("CFG_*.json"))
